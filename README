@@ -1,0 +1,194 @@
+NAME
+    Furl - Lightning-fast URL fetcher
+
+SYNOPSIS
+        use Furl;
+
+        my $furl = Furl->new(
+            agent   => 'MyGreatUA/2.0',
+            timeout => 10,
+        );
+
+        my ($code, $msg, $headers, $body) = $furl->request(
+            method => 'GET',
+            host   => 'example.com',
+            port   => 80,
+            path   => '/'
+        );
+        # or
+        my ($code, $msg, $headers, $body) = $furl->get('http://example.com/');
+        my ($code, $msg, $headers, $body) = $furl->post(
+            'http://example.com/', # URL
+            [...],                 # headers
+            [ foo => 'bar' ],      # form data (HashRef/FileHandle are also okay)
+        );
+
+        # Accept-Encoding is supported but optional
+        $furl = Furl->new(
+            headers => [ 'Accept-Encoding' => 'gzip' ],
+        );
+        my $body = $furl->get('http://example.com/some/compressed');
+
+DESCRIPTION
+    Furl is yet another HTTP client library. LWP is the de facto standard
+    HTTP client for Perl5, but it is too slow for some critical jobs, and
+    too complex for weekend hacking. Furl will resolves these issues. Enjoy
+    it!
+
+    This library is an alpha software. Any APIs will change without notice.
+
+INTERFACE
+  Class Methods
+   "Furl->new(%args | \%args) :Furl"
+    Creates and returns a new Furl client with *%args*. Dies on errors.
+
+    *%args* might be:
+
+    agent :Str = "Furl/$VERSION"
+    timeout :Int = 10
+    max_redirects :Int = 7
+    proxy :Str
+    headers :ArrayRef
+
+  Instance Methods
+   "$furl->request(%args) :($code, $msg, \@headers, $body)"
+    Sends an HTTP request to a specified URL and returns a status code,
+    status message, response headers, response body respectively.
+
+    *%args* might be:
+
+    scheme :Str = "http"
+    host :Str
+    port :Int = 80
+    path_query :Str = "/"
+    url :Str
+        You can use "url" instead of "scheme", "host", "port" and
+        "path_query".
+
+    headers :ArrayRef
+    content : Str | ArrayRef[Str] | HashRef[Str] | FileHandle
+
+   "$furl->get($url :Str, $headers :ArrayRef[Str] ) :List"
+    This is an easy-to-use alias to "request()".
+
+   "$furl->head($url :Str, $headers :ArrayRef[Str] ) :List"
+    This is an easy-to-use alias to "request()".
+
+   "$furl->post($url :Str, $headers :ArrayRef[Str], $content :Any) :List"
+    This is an easy-to-use alias to "request()".
+
+   "$furl->put($url :Str, $headers :ArrayRef[Str], $content :Any) :List"
+    This is an easy-to-use alias to "request()".
+
+   "$furl->delete($url :Str, $headers :ArrayRef[Str] ) :List"
+    This is an easy-to-use alias to "request()".
+
+   "$furl->request_with_http_request($req :HTTP::Request) :List"
+    This is an easy-to-use alias to "request()".
+
+   "$furl->env_proxy()"
+    Loads proxy settings from $ENV{HTTP_PROXY}.
+
+INTEGRATE WITH HTTP::Response
+    Some useful libraries require HTTP::Response instances for their
+    arguments. You can easily create its instance from the result of
+    "request()" and other HTTP request methods.
+
+        my $res = HTTP::Response->new($furl->get($url));
+
+PROJECT POLICY
+    Why IO::Socket::SSL?
+        Net::SSL is not well documented.
+
+    Why env_proxy is optional?
+        Environment variables are highly dependent on users' environments.
+        It makes confusing users.
+
+    Supported Operating Systems.
+        Linux 2.6 or higher, OSX Tiger or higher, Windows XP or higher.
+
+        And we can support other operating systems if you send a patch.
+
+    Why Furl does not support chunked upload?
+        There are reasons why chunked POST/PUTs should not be generally
+        used. You cannot send chunked requests unless the peer server at the
+        other end of the established TCP connection is known to be a
+        HTTP/1.1 server. However HTTP/1.1 servers disconnect their
+        persistent connection quite quickly (when comparing to the time they
+        wait for the first request), so it is not a good idea to post
+        non-idempotent requests (e.g. POST, PUT, etc.) as a succeeding
+        request over persistent connections. The two facts together makes
+        using chunked requests virtually impossible (unless you _know_ that
+        the server supports HTTP/1.1), and this is why we decided that
+        supporting the feature is of high priority.
+
+FAQ
+    How to make content body by CodeRef?
+        use Tie::Handle. If you have any reason to support this, please send
+        a github ticket.
+
+    How to use cookie_jar?
+        Furl does not support cookie_jar. You can use HTTP::Cookies,
+        HTTP::Request, HTTP::Response like following.
+
+            my $f = Furl->new();
+            my $cookies = HTTP::Cookies->new();
+            my $req = HTTP::Request->new(...);
+            $cookies->add_cookie_header($req);
+            my $res = HTTP::Response->new($f->request_with_http_request($req));
+            $cookies->extract_cookies($res);
+            # and use $res.
+
+    How to use gzip/deflate compressed communication?
+        Add an Accept-Encoding header to your request. Furl inflates
+        response bodies transparently according to the Content-Encoding
+        response header.
+
+TODO
+    Before First Release
+
+        - Docs, docs, docs!
+
+    After First Release
+
+        - AnyEvent::Furl?
+        - change the parser_http_response args. and backport to HTTP::Response::Parser.
+            my($headers, $retcode, ...) = parse_http_response($buf, $last_len, @specific_headers)
+        - use HTTP::Response::Parser
+        - PP version(by HTTP::Respones::Parser)
+        - multipart/form-data support
+
+OPTIONAL FEATURES
+  Internationalized Domain Name (IDN)
+    This feature requires Net::IDN::Encode.
+
+  SSL
+    This feature requires IO::Socket::SSL.
+
+  Content-Encoding (deflate, gzip)
+    This feature requires Compress::Raw::Zlib.
+
+AUTHOR
+    Tokuhiro Matsuno <tokuhirom AAJKLFJEF GMAIL COM>
+
+    gfx
+
+THANKS TO
+    Kazuho Oku
+
+    mala
+
+    mattn
+
+SEE ALSO
+    LWP
+
+    HTTP specs: <http://www.w3.org/Protocols/HTTP/1.0/spec.html>
+    <http://www.w3.org/Protocols/HTTP/1.1/spec.html>
+
+LICENSE
+    Copyright (C) Tokuhiro Matsuno
+
+    This library is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself.
+
