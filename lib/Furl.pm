@@ -2,7 +2,7 @@ package Furl;
 use strict;
 use warnings;
 use 5.008;
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use Carp ();
 use XSLoader;
@@ -258,6 +258,8 @@ sub request {
             select($sock); $|=1;
             select($orig);
         }
+
+        binmode $sock;
     }
 
     # write request

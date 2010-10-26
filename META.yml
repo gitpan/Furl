@@ -11,7 +11,7 @@ build_requires:
   IO::Socket::INET: 0
   Plack: 0.9949
   Test::More: 0.96
-  Test::TCP: 0
+  Test::TCP: 1.06
 configure_requires:
   Devel::PPPort: 3.19
   ExtUtils::MakeMaker: 6.42
@@ -37,4 +37,4 @@ requires:
   perl: 5.8.0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.03
+version: 0.04
