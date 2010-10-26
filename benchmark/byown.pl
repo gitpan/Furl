@@ -2,8 +2,9 @@ use strict;
 use warnings;
 use autodie;
 use Benchmark ':all';
+use Starman;
 use LWP::UserAgent;
-use WWW::Curl::Easy;
+use WWW::Curl::Easy 4.14;
 use Furl;
 use Child;
 use Test::TCP qw/empty_port/;
@@ -17,13 +18,13 @@ my $port = empty_port();
 my $ua = LWP::UserAgent->new(parse_head => 0, keep_alive => 1);
 my $curl = WWW::Curl::Easy->new();
 my $furl = Furl->new(parse_header => 0);
-my $url = "http://127.0.0.1:$port/";
+my $url = "http://127.0.0.1:$port/foo/bar";
 
 my $child = Child->new(
     sub {
-        Plack::Loader->auto( port => $port )
+        Plack::Loader->load( 'Starman', port => $port )
           ->run(
-            sub { exit if $_[0]->{REQUEST_METHOD} eq 'DIE'; [ 200, [], [] ] } );
+            sub { [ 200, ['Content-Length' => length('Hi')], ['Hi'] ] } );
     }
 );
 my $proc = $child->start();
@@ -43,8 +44,8 @@ cmpthese(
                 push @headers, @_;
                 length($_[0]);
             });
-            open my $fh, '<', \my $content;
-            $curl->setopt(CURLOPT_WRITEDATA, $fh);
+            my $content = '';
+            $curl->setopt(CURLOPT_WRITEDATA, \$content);
             $curl->perform();
             my $code = $curl->getinfo(CURLINFO_HTTP_CODE);
         },
@@ -53,7 +54,6 @@ cmpthese(
         },
     },
 );
-$furl->request(method => 'DIE', url => $url);
 
-$proc->wait();
+$proc->kill('TERM');
 

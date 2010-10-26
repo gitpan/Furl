@@ -1,4 +1,20 @@
 Revision history for Perl extension Furl
 
+0.03
+
+        - support no_proxy
+        - fixed keep-alive issue
+        - fix ppport issue for perl < 5.12
+        - THX fix
+        - doc fix
+        - micro optimization
+        - a lot of tweaks
+
+0.02
+
+        - doc enhancements
+        - micro optimization
+        - more test cases
+
 0.01    Fri Oct 15 17:03:09 2010
         - original version

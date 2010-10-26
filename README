@@ -32,10 +32,9 @@ SYNOPSIS
 DESCRIPTION
     Furl is yet another HTTP client library. LWP is the de facto standard
     HTTP client for Perl5, but it is too slow for some critical jobs, and
-    too complex for weekend hacking. Furl will resolves these issues. Enjoy
-    it!
+    too complex for weekend hacking. Furl resolves these issues. Enjoy it!
 
-    This library is an alpha software. Any APIs will change without notice.
+    This library is an alpha software. Any API may change without notice.
 
 INTERFACE
   Class Methods
@@ -48,6 +47,7 @@ INTERFACE
     timeout :Int = 10
     max_redirects :Int = 7
     proxy :Str
+    no_proxy :Str
     headers :ArrayRef
 
   Instance Methods
@@ -58,15 +58,35 @@ INTERFACE
     *%args* might be:
 
     scheme :Str = "http"
+        Protocol scheme. May be "http" or "https".
+
     host :Str
+        Server host to connect.
+
+        You must specify at least "host" or "url".
+
     port :Int = 80
+        Server port to connect. The default is 80 on "scheme => 'http'", or
+        443 on "scheme => 'https'".
+
     path_query :Str = "/"
+        Path and query to request.
+
     url :Str
+        URL to request.
+
         You can use "url" instead of "scheme", "host", "port" and
         "path_query".
 
     headers :ArrayRef
+        HTTP request headers. e.g. "headers => [ 'Accept-Encoding' => 'gzip'
+        ]".
+
     content : Str | ArrayRef[Str] | HashRef[Str] | FileHandle
+        Content to request.
+
+    You must encode all the queries or this method will die, saying "Wide
+    character in ...".
 
    "$furl->get($url :Str, $headers :ArrayRef[Str] ) :List"
     This is an easy-to-use alias to "request()".
@@ -87,7 +107,11 @@ INTERFACE
     This is an easy-to-use alias to "request()".
 
    "$furl->env_proxy()"
-    Loads proxy settings from $ENV{HTTP_PROXY}.
+    Loads proxy settings from $ENV{HTTP_PROXY} and $ENV{NO_PROXY}.
+
+  Utilities
+   "Furl::Util::header_get(\@headers, $name :Str) :Maybe[Str]"
+    This is equivalent to "Plack::Util::header_get()".
 
 INTEGRATE WITH HTTP::Response
     Some useful libraries require HTTP::Response instances for their
@@ -100,36 +124,54 @@ PROJECT POLICY
     Why IO::Socket::SSL?
         Net::SSL is not well documented.
 
-    Why env_proxy is optional?
-        Environment variables are highly dependent on users' environments.
-        It makes confusing users.
+    Why is env_proxy optional?
+        Environment variables are highly dependent on each users'
+        environment, and we think it may confuse users when something
+        doesn't go right.
 
-    Supported Operating Systems.
+    What operating systems are supported?
         Linux 2.6 or higher, OSX Tiger or higher, Windows XP or higher.
 
-        And we can support other operating systems if you send a patch.
+        And other operating systems will be supported if you send a patch.
 
-    Why Furl does not support chunked upload?
-        There are reasons why chunked POST/PUTs should not be generally
-        used. You cannot send chunked requests unless the peer server at the
-        other end of the established TCP connection is known to be a
-        HTTP/1.1 server. However HTTP/1.1 servers disconnect their
-        persistent connection quite quickly (when comparing to the time they
-        wait for the first request), so it is not a good idea to post
-        non-idempotent requests (e.g. POST, PUT, etc.) as a succeeding
-        request over persistent connections. The two facts together makes
-        using chunked requests virtually impossible (unless you _know_ that
-        the server supports HTTP/1.1), and this is why we decided that
-        supporting the feature is of high priority.
+    Why doesn't Furl support chunked upload?
+        There are reasons why chunked POST/PUTs should not be used in
+        general.
+
+        First, you cannot send chunked requests unless the peer server at
+        the other end of the established TCP connection is known to be a
+        HTTP/1.1 server.
+
+        Second, HTTP/1.1 servers disconnect their persistent connection
+        quite quickly (compared to the time they wait for the first
+        request), so it is not a good idea to post non-idempotent requests
+        (e.g. POST, PUT, etc.) as a succeeding request over persistent
+        connections.
+
+        These facts together makes using chunked requests virtually
+        impossible (unless you _know_ that the server supports HTTP/1.1),
+        and this is why we decided that supporting the feature is NOT of
+        high priority.
 
 FAQ
-    How to make content body by CodeRef?
-        use Tie::Handle. If you have any reason to support this, please send
-        a github ticket.
+    How do you build the response content as it arrives?
+        You can use IO::Callback for this purpose.
 
-    How to use cookie_jar?
-        Furl does not support cookie_jar. You can use HTTP::Cookies,
-        HTTP::Request, HTTP::Response like following.
+            my $fh = IO::Callback->new(
+                '<',
+                sub {
+                    my $x = shift @data;
+                    $x ? "-$x" : undef;
+                }
+            );
+            my ( $code, $msg, $headers, $content ) =
+              $furl->put( "http://127.0.0.1:$port/", [ 'Content-Length' => $len ], $fh,
+              );
+
+    How do you use cookie_jar?
+        Furl does not directly support the cookie_jar option available in
+        LWP. You can use HTTP::Cookies, HTTP::Request, HTTP::Response like
+        following.
 
             my $f = Furl->new();
             my $cookies = HTTP::Cookies->new();
@@ -139,24 +181,53 @@ FAQ
             $cookies->extract_cookies($res);
             # and use $res.
 
-    How to use gzip/deflate compressed communication?
+    How do you use gzip/deflate compressed communication?
         Add an Accept-Encoding header to your request. Furl inflates
         response bodies transparently according to the Content-Encoding
         response header.
 
+    How do you use mutipart/form-data?
+        You can use multipart/form-data with HTTP::Request::Common.
+
+            use HTTP::Request::Common;
+
+            my $furl = Furl->new();
+            $req = POST 'http://www.perl.org/survey.cgi',
+              Content_Type => 'form-data',
+              Content      => [
+                name   => 'Hiromu Tokunaga',
+                email  => 'tokuhirom@example.com',
+                gender => 'F',
+                born   => '1978',
+                init   => ["$ENV{HOME}/.profile"],
+              ];
+            $furl->request_with_http_request($req);
+
+        Native multipart/form-data support for Furl is available if you can
+        send a patch for me.
+
+    How do you use Keep-Alive and what happens on the HEAD method?
+        Furl supports HTTP/1.1, hence "Keep-Alive". However, if you use the
+        HEAD method, the connection is closed immediately.
+
+        RFC 2616 section 9.4 says:
+
+            The HEAD method is identical to GET except that the server MUST NOT
+            return a message-body in the response.
+
+        Some web applications, however, returns message bodies on the HEAD
+        method, which might confuse "Keep-Alive" processes, so Furl closes
+        connection in such cases.
+
+        Anyway, the HEAD method is not so useful nowadays. The GET method
+        and "If-Modified-Sinse" are more suitable to cache HTTP contents.
+
 TODO
-    Before First Release
-
-        - Docs, docs, docs!
-
-    After First Release
-
         - AnyEvent::Furl?
-        - change the parser_http_response args. and backport to HTTP::Response::Parser.
-            my($headers, $retcode, ...) = parse_http_response($buf, $last_len, @specific_headers)
         - use HTTP::Response::Parser
         - PP version(by HTTP::Respones::Parser)
-        - multipart/form-data support
+        - ipv6 support
+        - better docs for NO_PROXY
 
 OPTIONAL FEATURES
   Internationalized Domain Name (IDN)
@@ -168,10 +239,28 @@ OPTIONAL FEATURES
   Content-Encoding (deflate, gzip)
     This feature requires Compress::Raw::Zlib.
 
+DEVELOPMENT
+    To setup your environment:
+
+        $ git clone http://github.com/tokuhirom/p5-Furl.git
+        $ cd p5-Furl
+
+    To get picohttpparser:
+
+        $ git submodule init
+        $ git submodule update
+
+        $ perl Makefile.PL
+        $ make
+        $ sudo make install
+
+  HOW TO CONTRIBUTE
+    Please send the pull-req via <http://github.com/tokuhirom/p5-Furl/>.
+
 AUTHOR
     Tokuhiro Matsuno <tokuhirom AAJKLFJEF GMAIL COM>
 
-    gfx
+    Fuji, Goro (gfx)
 
 THANKS TO
     Kazuho Oku
@@ -180,6 +269,8 @@ THANKS TO
 
     mattn
 
+    lestrrat
+
 SEE ALSO
     LWP
 
@@ -187,7 +278,7 @@ SEE ALSO
     <http://www.w3.org/Protocols/HTTP/1.1/spec.html>
 
 LICENSE
-    Copyright (C) Tokuhiro Matsuno
+    Copyright (C) Tokuhiro Matsuno.
 
     This library is free software; you can redistribute it and/or modify it
     under the same terms as Perl itself.

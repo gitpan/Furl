@@ -1,0 +1,49 @@
+### On tokuhirom's SC440
+
+0.01 3534c7b341136a18bd52449af6e28570ca87a36f
+
+       Rate  lwp furl curl
+       lwp   792/s   -- -88% -90%
+       furl 6461/s 715%   -- -15%
+       curl 7587/s 857%  17%   --
+
+0.02 fbb922531d3236b2da84acd0c22f554e61060446
+
+                Rate       lwp http_lite      furl      curl
+                lwp        823/s        --       -8%      -74%      -89%
+                http_lite  896/s        9%        --      -72%      -88%
+                furl      3170/s      285%      254%        --      -59%
+                curl      7657/s      831%      754%      142%        --
+
+25998b62ae12445ae0a8bdd5329ffe8f9bd71dd2
+
+            Rate       lwp http_lite      furl      curl
+            lwp        792/s        --      -25%      -76%      -91%
+            http_lite 1056/s       33%        --      -68%      -88%
+            furl      3326/s      320%      215%        --      -62%
+            curl      8783/s     1010%      732%      164%        --
+
+496a941ca1fd8cfcc8925c91fab501d516fdfa8e
+
+fixed bug.
+
+            Rate       lwp http_lite      furl      curl
+            lwp        767/s        --      -27%      -88%      -91%
+            http_lite 1046/s       36%        --      -84%      -88%
+            furl      6461/s      742%      518%        --      -26%
+            curl      8783/s     1045%      740%       36%        --
+
+#### micro optimization
+
+    commit c8f4c4655966ecb1b2fef98769a72e437dd467fe
+    Perl/5.12.1 on x86_64-linux
+    Furl/0.02, LWP/5.837, WWW::Curl/4.14, HTTP::Lite/2.2
+    Server: nginx/0.8.48
+    --
+
+            Rate       lwp http_lite      furl      curl
+            lwp        800/s        --      -23%      -88%      -91%
+            http_lite 1036/s       30%        --      -84%      -88%
+            furl      6587/s      723%      536%        --      -24%
+            curl      8650/s      981%      735%       31%        --
+
