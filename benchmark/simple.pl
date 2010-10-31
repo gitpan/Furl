@@ -4,28 +4,40 @@ use Benchmark ':all';
 use LWP::UserAgent;
 use WWW::Curl::Easy 4.14;
 use HTTP::Lite;
-use Furl;
+use Furl qw/HEADER_NONE HEADERS_AS_ARRAYREF/;
 use Config;
+use Getopt::Long;
+
+GetOptions(
+    'busize=i' => \my $bufsize,
+);
 
 printf `git rev-parse HEAD`;
 printf "Perl/%vd on %s\n", $^V, $Config{archname};
-printf "Furl/$Furl::VERSION, LWP/$LWP::VERSION, WWW::Curl/$WWW::Curl::VERSION, HTTP::Lite/$HTTP::Lite::VERSION\n";
+printf "Furl/$Furl::VERSION, LWP/$LWP::VERSION, WWW::Curl/$WWW::Curl::VERSION, HTTP::Lite/$HTTP::Lite::VERSION, libcurl[@{[ WWW::Curl::Easy::version() ]}]\n";
 
 my $url = shift @ARGV || 'http://192.168.1.3:80/';
 
 my $ua = LWP::UserAgent->new(parse_head => 0, keep_alive => 1);
 my $curl = WWW::Curl::Easy->new();
-my $furl = Furl->new(parse_header => 0);
+my $furl = Furl->new(header_format => HEADER_NONE);
+$furl->{bufsize} = $bufsize if defined $bufsize;
 my $uri = URI->new($url);
 my $host = $uri->host;
 my $scheme = $uri->scheme;
 my $port = $uri->port;
 my $path_query = $uri->path_query;
 my $lite = HTTP::Lite->new();
+$lite->http11_mode(1);
 
-my $server = $ua->get($url)->header('Server');
-printf "Server: %s\n", $server || 'unknown';
+my $res = $ua->get($url);
+print "--\n";
+print $res->headers_as_string;
+print "--\n";
+printf "bufsize: %d\n", $furl->{bufsize};
 print "--\n\n";
+my $body_content_length = length($res->content);
+$body_content_length == $res->content_length or die;
 
 cmpthese(
     -1, {
@@ -33,10 +45,13 @@ cmpthese(
             my $req = $lite->request($url)
                 or die;
             $lite->status == 200 or die;
+            length($lite->body) == $body_content_length or die "Lite failed: @{[ length($lite->body) ]} != $body_content_length";
+            $lite->reset(); # This is *required* for re-use instance.
         },
         lwp => sub {
             my $res = $ua->get($url);
             $res->code == 200 or die;
+            length($res->content) == $body_content_length or die;
         },
         curl => sub {
             my @headers;
@@ -54,6 +69,7 @@ cmpthese(
             $ret == 0 or die "$ret : " . $curl->strerror($ret);
             my $code = $curl->getinfo(CURLINFO_HTTP_CODE);
             $code == 200 or die "oops: $code";
+            length($content) == $body_content_length or die;
         },
         furl => sub {
             my ( $code, $msg, $headers, $content ) = $furl->request(
@@ -65,6 +81,7 @@ cmpthese(
                 headers    => [ 'Content-Length' => 0 ]
             );
             $code == 200 or die "oops: $code, $content";
+            length($content) == $body_content_length or die;
         },
     },
 );

@@ -49,6 +49,17 @@ INTERFACE
     proxy :Str
     no_proxy :Str
     headers :ArrayRef
+    header_format :Int = HEADERS_AS_ARRAYREF
+        This option choose return value format of "$furl->request".
+
+        This option allows HEADERS_NONE or HEADERS_AS_ARRAYREF.
+
+        HEADERS_AS_ARRAYREF is a default value. This makes $headers as
+        ArrayRef.
+
+        HEADERS_NONE makes $headers as undef. Furl does not return parsing
+        result of headers. You should take needed headers from
+        special_headers.
 
   Instance Methods
    "$furl->request(%args) :($code, $msg, \@headers, $body)"
@@ -108,10 +119,6 @@ INTERFACE
 
    "$furl->env_proxy()"
     Loads proxy settings from $ENV{HTTP_PROXY} and $ENV{NO_PROXY}.
-
-  Utilities
-   "Furl::Util::header_get(\@headers, $name :Str) :Maybe[Str]"
-    This is equivalent to "Plack::Util::header_get()".
 
 INTEGRATE WITH HTTP::Response
     Some useful libraries require HTTP::Response instances for their
@@ -225,7 +232,6 @@ FAQ
 TODO
         - AnyEvent::Furl?
         - use HTTP::Response::Parser
-        - PP version(by HTTP::Respones::Parser)
         - ipv6 support
         - better docs for NO_PROXY
 
@@ -270,6 +276,8 @@ THANKS TO
     mattn
 
     lestrrat
+
+    walf443
 
 SEE ALSO
     LWP

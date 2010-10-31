@@ -1,11 +1,11 @@
 package Furl;
 use strict;
 use warnings;
+use base qw/Exporter/;
 use 5.008;
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 use Carp ();
-use XSLoader;
 
 use Scalar::Util ();
 use Errno qw(EAGAIN EINTR EWOULDBLOCK);
@@ -19,8 +19,10 @@ use Socket qw(
 );
 
 use constant WIN32 => $^O eq 'MSWin32';
+use HTTP::Parser::XS qw/HEADERS_NONE HEADERS_AS_ARRAYREF/;
 
-XSLoader::load __PACKAGE__, $VERSION;
+our @EXPORT_OK = qw/HEADERS_NONE HEADERS_AS_ARRAYREF/;
+
 
 # ref. RFC 2616, 3.5 Content Codings:
 #     For compatibility with previous implementations of HTTP,
@@ -50,6 +52,7 @@ sub new {
         proxy         => '',
         no_proxy      => '',
         sock_cache    => $class->new_conn_cache(),
+        header_format => HEADERS_AS_ARRAYREF,
         %args
     }, $class;
 }
@@ -346,14 +349,13 @@ sub request {
     my $res_minor_version;
     my $res_status;
     my $res_msg;
-    my @res_headers;
-    my %res = (
-        'connection'        => '',
-        'transfer-encoding' => '',
-        'content-encoding'  => '',
-        'location'          => '',
-        'content-length'    => undef,
-    );
+    my $res_headers;
+    my $special_headers = $args{special_headers} || +{};
+    $special_headers->{'connection'}        = '';
+    $special_headers->{'content-length'}    = undef;
+    $special_headers->{'location'}          = '';
+    $special_headers->{'content-encoding'}  = '';
+    $special_headers->{'transfer-encoding'} = '';
   LOOP: while (1) {
         my $n = $self->read_timeout($sock,
             \$buf, $self->{bufsize}, length($buf), $timeout );
@@ -366,8 +368,8 @@ sub request {
         }
         else {
             my $ret;
-            ( $res_minor_version, $res_status, $res_msg, $ret )
-                =  parse_http_response( $buf, $last_len, \@res_headers, \%res );
+            ( $ret, $res_minor_version, $res_status, $res_msg, $res_headers )
+                =  HTTP::Parser::XS::parse_http_response( $buf, $self->{header_format}, $special_headers );
             if ( $ret == -1 ) {
                 return $self->_r500("Invalid HTTP response");
             }
@@ -389,14 +391,14 @@ sub request {
         $res_content = Furl::FileStream->new( $fh );
     } elsif (my $coderef = $args{write_code}) {
         $res_content = Furl::CallbackStream->new(
-            sub { $coderef->($res_status, $res_msg, \@res_headers, @_) }
+            sub { $coderef->($res_status, $res_msg, $res_headers, @_) }
         );
     }
     else {
         $res_content = '';
     }
 
-    if (exists $COMPRESSED{ $res{'content-encoding'} }) {
+    if (exists $COMPRESSED{ $special_headers->{'content-encoding'} }) {
         Furl::Util::requires('Furl/ZlibStream.pm', 'Content-Encoding', 'Compress::Raw::Zlib');
 
         $res_content = Furl::ZlibStream->new($res_content);
@@ -404,22 +406,29 @@ sub request {
 
     if($method ne 'HEAD') {
         my @err;
-        if ( $res{'transfer-encoding'} eq 'chunked' ) {
+        if ( $special_headers->{'transfer-encoding'} eq 'chunked' ) {
             @err = $self->_read_body_chunked($sock,
                 \$res_content, $rest_header, $timeout);
         } else {
             $res_content .= $rest_header;
-            @err = $self->_read_body_normal($sock,
-                \$res_content, length($rest_header),
-                $res{'content-length'}, $timeout);
+            my $content_length = $special_headers->{'content-length'};
+            if (ref $res_content || !defined($content_length)) {
+                @err = $self->_read_body_normal($sock,
+                    \$res_content, length($rest_header),
+                    $content_length, $timeout);
+            } else {
+                @err = $self->_read_body_normal_to_string_buffer($sock,
+                    \$res_content, length($rest_header),
+                    $content_length, $timeout);
+            }
         }
         if(@err) {
             return @err;
         }
     }
 
-    if ($res{location}) {
-        my $max_redirects = $args{max_redirects} || $self->{max_redirects};
+    if ($special_headers->{location}) {
+        my $max_redirects = defined($args{max_redirects}) ? $args{max_redirects} : $self->{max_redirects};
         if ($max_redirects && $res_status =~ /^30[123]$/) {
             # Note: RFC 1945 and RFC 2068 specify that the client is not allowed
             # to change the method on the redirected request.  However, most
@@ -431,7 +440,7 @@ sub request {
             return $self->request(
                 @_,
                 method        => $res_status eq '301' ? $method : 'GET',
-                url           => $res{location},
+                url           => $special_headers->{location},
                 max_redirects => $max_redirects - 1,
             );
         }
@@ -439,9 +448,9 @@ sub request {
 
     # manage cache
     if (   $res_minor_version == 0
-        || lc($res{'connection'}) eq 'close'
-        || !(    defined($res{'content-length'})
-              || $res{'transfer-encoding'} eq 'chunked' )
+        || lc($special_headers->{'connection'}) eq 'close'
+        || !(    defined($special_headers->{'content-length'})
+              || $special_headers->{'transfer-encoding'} eq 'chunked' )
         || $method eq 'HEAD') {
         $self->remove_conn_cache($host, $port);
     } else {
@@ -450,9 +459,9 @@ sub request {
 
     # return response.
     if (ref $res_content) {
-        return ($res_status, $res_msg, \@res_headers, $res_content->get_response_string);
+        return ($res_status, $res_msg, $res_headers, $res_content->get_response_string);
     } else {
-        return ($res_status, $res_msg, \@res_headers, $res_content);
+        return ($res_status, $res_msg, $res_headers, $res_content);
     }
 }
 
@@ -598,7 +607,7 @@ sub _read_body_chunked {
 
 sub _read_body_normal {
     my ($self, $sock, $res_content, $nread, $res_content_length, $timeout) = @_;
-  READ_LOOP: while (!defined($res_content_length) || $res_content_length != $nread) {
+    while (!defined($res_content_length) || $res_content_length != $nread) {
         my $n = $self->read_timeout( $sock,
             \my $buf, $self->{bufsize}, 0, $timeout );
         if (!$n) {
@@ -614,6 +623,24 @@ sub _read_body_normal {
     return;
 }
 
+# This function loads all content at once if it's possible. Since $res_content is just a plain scalar.
+# Buffering is not needed.
+sub _read_body_normal_to_string_buffer {
+    my ($self, $sock, $res_content, $nread, $res_content_length, $timeout) = @_;
+    while ($res_content_length != $nread) {
+        my $n = $self->read_timeout( $sock,
+            $res_content, $res_content_length, $nread, $timeout );
+        if (!$n) {
+            return $self->_r500(
+                !defined($n)
+                    ? "Cannot read content body: $!"
+                    : "Unexpected EOF while reading content body"
+            );
+        }
+        $nread += $n;
+    }
+    return;
+}
 
 # I/O with tmeout (stolen from Starlet/kazuho++)
 
@@ -815,6 +842,16 @@ I<%args> might be:
 
 =item headers :ArrayRef
 
+=item header_format :Int = HEADERS_AS_ARRAYREF
+
+This option choose return value format of C<< $furl->request >>.
+
+This option allows HEADERS_NONE or HEADERS_AS_ARRAYREF.
+
+B<HEADERS_AS_ARRAYREF> is a default value. This makes B<$headers> as ArrayRef.
+
+B<HEADERS_NONE> makes B<$headers> as undef. Furl does not return parsing result of headers. You should take needed headers from B<special_headers>.
+
 =back
 
 =head2 Instance Methods
@@ -893,12 +930,6 @@ This is an easy-to-use alias to C<request()>.
 =head3 C<< $furl->env_proxy() >>
 
 Loads proxy settings from C<< $ENV{HTTP_PROXY} >> and C<< $ENV{NO_PROXY} >>.
-
-=head2 Utilities
-
-=head3 C<< Furl::Util::header_get(\@headers, $name :Str) :Maybe[Str] >>
-
-This is equivalent to C<< Plack::Util::header_get() >>.
 
 =head1 INTEGRATE WITH HTTP::Response
 
@@ -1016,7 +1047,6 @@ C<If-Modified-Sinse> are more suitable to cache HTTP contents.
 
     - AnyEvent::Furl?
     - use HTTP::Response::Parser
-    - PP version(by HTTP::Respones::Parser)
     - ipv6 support
     - better docs for NO_PROXY
 
@@ -1069,6 +1099,8 @@ mala
 mattn
 
 lestrrat
+
+walf443
 
 =head1 SEE ALSO
 

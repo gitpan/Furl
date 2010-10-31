@@ -61,6 +61,16 @@ _%args_ might be:
 
 - headers :ArrayRef
 
+- header_format :Int = HEADERS_AS_ARRAYREF
+
+This option choose return value format of `$furl->request`.
+
+This option allows HEADERS_NONE or HEADERS_AS_ARRAYREF.
+
+__HEADERS_AS_ARRAYREF__ is a default value. This makes __$headers__ as ArrayRef.
+
+__HEADERS_NONE__ makes __$headers__ as undef. Furl does not return parsing result of headers. You should take needed headers from __special_headers__.
+
 ## Instance Methods
 
 ### C<< $furl->request(%args) :($code, $msg, \@headers, $body) >>
@@ -133,12 +143,6 @@ This is an easy-to-use alias to `request()`.
 ### C<< $furl->env_proxy() >>
 
 Loads proxy settings from `$ENV{HTTP_PROXY}` and `$ENV{NO_PROXY}`.
-
-## Utilities
-
-### C<< Furl::Util::header_get(\@headers, $name :Str) :Maybe[Str] >>
-
-This is equivalent to `Plack::Util::header_get()`.
 
 # INTEGRATE WITH HTTP::Response
 
@@ -248,7 +252,6 @@ Anyway, the HEAD method is not so useful nowadays. The GET method and
 
     - AnyEvent::Furl?
     - use HTTP::Response::Parser
-    - PP version(by HTTP::Respones::Parser)
     - ipv6 support
     - better docs for NO_PROXY
 
@@ -301,6 +304,8 @@ mala
 mattn
 
 lestrrat
+
+walf443
 
 # SEE ALSO
 
