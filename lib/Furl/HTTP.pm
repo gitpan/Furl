@@ -490,7 +490,6 @@ sub request {
 }
 
 # connects to $host:$port and returns $socket
-# You can override this methond in your child class.
 sub connect :method {
     my($self, $host, $port) = @_;
     my $sock;
@@ -1039,6 +1038,7 @@ C<If-Modified-Sinse> are more suitable to cache HTTP contents.
     - AnyEvent::Furl?
     - ipv6 support
     - better docs for NO_PROXY
+    - document: how do you use progressbar like LWP::ProgressBar
 
 =head1 OPTIONAL FEATURES
 
