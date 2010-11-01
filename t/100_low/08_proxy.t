@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Furl;
+use Furl::HTTP;
 use Test::TCP;
 use Plack::Loader;
 use Test::More;
@@ -28,16 +28,16 @@ test_tcp(
             client => sub { # http client
                 my $httpd_port = shift;
                 for (1..3) { # run some times for testing keep-alive.
-                    my $furl = Furl->new(proxy => "http://127.0.0.1:$proxy_port");
-                    my ( $code, $msg, $headers, $content ) =
+                    my $furl = Furl::HTTP->new(proxy => "http://127.0.0.1:$proxy_port");
+                    my ( undef, $code, $msg, $headers, $content ) =
                         $furl->request(
                             url     => "http://127.0.0.1:$httpd_port/foo",
                             headers => [ "X-Foo" => "ppp" ]
                         );
                     is $code, 200, "request()";
                     is $msg, "OK";
-                    is Furl::Util::header_get($headers, 'Content-Length'), 10;
-                    is Furl::Util::header_get($headers, 'Via'), "1.0 $via";
+                    is Furl::HTTP::_header_get($headers, 'Content-Length'), 10;
+                    is Furl::HTTP::_header_get($headers, 'Via'), "1.0 $via";
                     is $content, 'Hello, foo'
                         or do{ require Devel::Peek; Devel::Peek::Dump($content) };
                 }
@@ -49,7 +49,7 @@ test_tcp(
 
                     my $req = Plack::Request->new($env);
                     is $req->header('X-Foo'), "ppp" if $env->{REQUEST_URI} eq '/foo';
-                    like $req->header('User-Agent'), qr/\A Furl /xms;
+                    like $req->header('User-Agent'), qr/\A Furl::HTTP /xms;
                     my $content = "Hello, foo";
                     return [ 200,
                         [ 'Content-Length' => length($content) ],
