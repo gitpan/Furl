@@ -1,27 +1,22 @@
 use strict;
 use warnings;
-use Test::Requires 'Starman';
 use Furl::HTTP;
 use Test::TCP;
-use Plack::Loader;
 use Test::More;
+use t::HTTPServer;
 
-use Plack::Request;
-use t::SilentStarman;
-
-my($add_conn_cache, $remove_conn_cache) = (0, 0);
+my ($stealed, $pushed) = (0, 0);
 {
-    package Test::Furl::HTTP;
-    our @ISA = qw(Furl::HTTP);
-
-    sub add_conn_cache    { $add_conn_cache++ }
-    sub remove_conn_cache { $remove_conn_cache++ }
+    package MyConnPool;
+    sub new { bless [], shift }
+    sub steal { $stealed++; undef }
+    sub push  { $pushed++;  undef }
 }
 
 test_tcp(
     client => sub {
         my $port = shift;
-        my $furl = Test::Furl::HTTP->new();
+        my $furl = Furl::HTTP->new(conn_pool => MyConnPool->new());
         for (1 .. 3) {
             note "-- TEST $_";
             my ( undef, $code, $msg, $headers, $content ) =
@@ -33,11 +28,11 @@ test_tcp(
             is $code, 200;
             is $content, 'OK' x 100;
         }
-        is $add_conn_cache,    3;
-        is $remove_conn_cache, 0;
+        is $stealed, 3, 'stealed';
+        is $pushed,  3;
 
-        $add_conn_cache    = 0;
-        $remove_conn_cache = 0;
+        $pushed  = 0;
+        $stealed = 0;
 
         $furl->request(
             method => 'HEAD',
@@ -45,27 +40,22 @@ test_tcp(
             path => '/',
             host => '127.0.0.1',
         );
-        is $add_conn_cache,    0, 'HEAD forces to close connections';
-        is $remove_conn_cache, 1;
+        is $pushed, 0, 'HEAD forces to close connections';
+        is $stealed, 1;
         done_testing;
     },
     server => sub {
         my $port = shift;
-        my $starmn = Plack::Loader->load( 'Starman',
-            host          => '127.0.0.1',
-            port          => $port,
-            log_level     => 0,
-            'max-workers' => 1,
-        )->run(
+        t::HTTPServer->new( port => $port )->run(
             sub {
                 my $env = shift;
                 return [
                     200,
-                    [ 'Transfer-Encoding' => 'chunked' ],
-                    [ 'OK'x100 ]
+                    [  ],
+                    [ 'OK' x 100 ]
                 ];
             }
-          );
+        );
     }
 );
 

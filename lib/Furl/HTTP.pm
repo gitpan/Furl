@@ -6,9 +6,10 @@ use 5.008001;
 
 use Carp ();
 use Furl;
+use Furl::ConnPool;
 
 use Scalar::Util ();
-use Errno qw(EAGAIN EINTR EWOULDBLOCK);
+use Errno qw(EAGAIN EINTR EWOULDBLOCK ECONNRESET);
 use Fcntl qw(F_GETFL F_SETFL O_NONBLOCK SEEK_SET SEEK_END);
 use Socket qw(
     PF_INET SOCK_STREAM
@@ -51,7 +52,7 @@ sub new {
         headers       => \@headers,
         proxy         => '',
         no_proxy      => '',
-        sock_cache    => $class->new_conn_cache(),
+        conn_pool     => Furl::ConnPool->new(),
         header_format => HEADERS_AS_ARRAYREF,
         %args
     }, $class;
@@ -238,7 +239,7 @@ sub request {
     }
 
     local $SIG{PIPE} = 'IGNORE';
-    my $sock         = $self->get_conn_cache($host, $port);
+    my $sock         = $self->{conn_pool}->steal($host, $port);
     my $in_keepalive = defined $sock;
     if(!$in_keepalive) {
         my ($_host, $_port);
@@ -376,9 +377,8 @@ sub request {
         my $n = $self->read_timeout($sock,
             \$buf, $self->{bufsize}, length($buf), $timeout );
         if(!$n) { # error or eof
-            if($in_keepalive && defined $n) {
-                # the server closes the connection (maybe because of timeout)
-                $self->remove_conn_cache($host, $port);
+            if($in_keepalive && (defined($n) || $!==ECONNRESET)) {
+                # the server closes the connection (maybe because of keep-alive timeout)
                 return $self->request(%args);
             }
             return $self->_r500(
@@ -453,6 +453,13 @@ sub request {
     if ($special_headers->{location}) {
         my $max_redirects = defined($args{max_redirects}) ? $args{max_redirects} : $self->{max_redirects};
         if ($max_redirects && $res_status =~ /^30[123]$/) {
+            my $location = $special_headers->{location};
+            unless ($location =~ m{^[a-z0-9]+://}) {
+                # RFC 2616 14.30 says Location header is absoluteURI.
+                # But, a lot of servers return relative URI.
+                _requires("URI.pm", "redirect with relative url");
+                $location = URI->new_abs($location, "$scheme://$host:$port$path_query")->as_string;
+            }
             # Note: RFC 1945 and RFC 2068 specify that the client is not allowed
             # to change the method on the redirected request.  However, most
             # existing user agent implementations treat 302 as if it were a 303
@@ -463,7 +470,7 @@ sub request {
             return $self->request(
                 @_,
                 method        => $res_status eq '301' ? $method : 'GET',
-                url           => $special_headers->{location},
+                url           => $location,
                 max_redirects => $max_redirects - 1,
             );
         }
@@ -471,14 +478,12 @@ sub request {
 
     # manage connection cache (i.e. keep-alive)
     my $connection = lc $special_headers->{'connection'};
-    if( ($res_minor_version == 0
+    if ( ($res_minor_version == 0
             ? $connection eq 'keep-alive' # HTTP/1.0 needs explicit keep-alive
             : $connection ne 'close' )    # HTTP/1.1 can keep alive by default
           && ( defined $content_length or $chunked )
           && $method ne 'HEAD' ) {
-        $self->add_conn_cache($host, $port, $sock);
-    } else {
-        $self->remove_conn_cache($host, $port);
+        $self->{conn_pool}->push($host, $port, $sock);
     }
 
     # return response.
@@ -537,37 +542,6 @@ sub connect_ssl_over_proxy {
 
     IO::Socket::SSL->start_SSL( $sock, Timeout => $timeout )
       or Carp::croak("Cannot start SSL connection: $!");
-}
-
-# following three connections are related to connection cache for keep-alive.
-# If you want to change the cache strategy, you can override in child classs.
-sub new_conn_cache {
-    return [''];
-}
-
-sub get_conn_cache {
-    my ( $self, $host, $port ) = @_;
-
-    my $cache = $self->{sock_cache};
-    if ($cache->[0] eq "$host:$port") {
-        return $cache->[1];
-    } else {
-        return undef;
-    }
-}
-
-sub remove_conn_cache {
-    my ($self, $host, $port) = @_;
-
-    @{ $self->{sock_cache} } = ('');
-    return;
-}
-
-sub add_conn_cache {
-    my ($self, $host, $port, $sock) = @_;
-
-    @{ $self->{sock_cache} } = ("$host:$port" => $sock);
-    return;
 }
 
 sub _read_body_chunked {
@@ -738,7 +712,6 @@ sub write_all {
 
 sub _r500 {
     my($self, $message) = @_;
-    $self->remove_conn_cache();
     $message = Carp::shortmess($message); # add lineno and filename
     return(0, 500, 'Internal Server Error',
         ['Content-Length' => length($message)], $message);
@@ -748,7 +721,7 @@ sub _r500 {
 sub match_no_proxy {
     my ( $self, $no_proxy, $host ) = @_;
 
-    # ref. curl1.
+    # ref. curl.1.
     #   list of host names that shouldn't go through any proxy.
     #   If set to a asterisk '*' only, it matches all hosts.
     if ( $no_proxy eq '*' ) {
@@ -1038,7 +1011,6 @@ C<If-Modified-Sinse> are more suitable to cache HTTP contents.
     - AnyEvent::Furl?
     - ipv6 support
     - better docs for NO_PROXY
-    - document: how do you use progressbar like LWP::ProgressBar
 
 =head1 OPTIONAL FEATURES
 
