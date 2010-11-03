@@ -6,7 +6,7 @@ use 5.008001;
 
 use Carp ();
 use Furl;
-use Furl::ConnPool;
+use Furl::ConnectionCache;
 
 use Scalar::Util ();
 use Errno qw(EAGAIN EINTR EWOULDBLOCK ECONNRESET);
@@ -52,7 +52,7 @@ sub new {
         headers       => \@headers,
         proxy         => '',
         no_proxy      => '',
-        conn_pool     => Furl::ConnPool->new(),
+        connection_pool     => Furl::ConnectionCache->new(),
         header_format => HEADERS_AS_ARRAYREF,
         %args
     }, $class;
@@ -105,23 +105,6 @@ sub delete {
     );
 }
 
-sub request_with_http_request {
-    my ($self, $req, %args) = @_;
-    my $headers = +[
-        map {
-            my $k = $_;
-            map { ( $k => $_ ) } $req->headers->header($_);
-          } $req->headers->header_field_names
-    ];
-    $self->request(
-        url     => $req->uri,
-        method  => $req->method,
-        content => $req->content,
-        headers => $headers,
-        %args
-    );
-}
-
 sub _header_get {
     my ($headers, $key) = (shift, lc shift);
     for (my $i=0; $i<@$headers; $i+=2) {
@@ -129,7 +112,6 @@ sub _header_get {
     }
     return undef;
 }
-
 
 sub _requires {
     my($file, $feature, $library) = @_;
@@ -194,6 +176,7 @@ sub request {
     my $self = shift;
     my %args = @_;
 
+
     my $timeout = $args{timeout};
     $timeout = $self->{timeout} if not defined $timeout;
 
@@ -239,7 +222,7 @@ sub request {
     }
 
     local $SIG{PIPE} = 'IGNORE';
-    my $sock         = $self->{conn_pool}->steal($host, $port);
+    my $sock         = $self->{connection_pool}->steal($host, $port);
     my $in_keepalive = defined $sock;
     if(!$in_keepalive) {
         my ($_host, $_port);
@@ -483,7 +466,7 @@ sub request {
             : $connection ne 'close' )    # HTTP/1.1 can keep alive by default
           && ( defined $content_length or $chunked )
           && $method ne 'HEAD' ) {
-        $self->{conn_pool}->push($host, $port, $sock);
+        $self->{connection_pool}->push($host, $port, $sock);
     }
 
     # return response.
@@ -844,6 +827,12 @@ B<HEADERS_AS_ARRAYREF> is a default value. This makes B<$headers> as ArrayRef.
 
 B<HEADERS_NONE> makes B<$headers> as undef. Furl does not return parsing result of headers. You should take needed headers from B<special_headers>.
 
+=item connection_pool
+
+This is the connection pool object for keep-alive requests. By default, it is a instance of L<Furl::ConnectionCache>.
+
+You may not customize this variable otherwise to use L<Coro>. This attribute requires a duck type object. It has two methods, C<< $obj->steal($host, $port >> and C<< $obj->push($host, $port, $sock) >>.
+
 =back
 
 =head2 Instance Methods
@@ -892,6 +881,12 @@ Content to request.
 
 =back
 
+The C<request()> method assumes the first argument to be an instance
+of C<HTTP::Request> if the arguments are an odd number:
+
+    my $req = HTTP::Request->new(...);
+    my @res = $furl->request($req); # allowed
+
 You must encode all the queries or this method will die, saying
 C<Wide character in ...>.
 
@@ -914,12 +909,6 @@ This is an easy-to-use alias to C<request()>, sending the C<PUT> method.
 =head3 C<< $furl->delete($url :Str, $headers :ArrayRef[Str] ) >>
 
 This is an easy-to-use alias to C<request()>, sending the C<DELETE> method.
-
-=head3 C<< $furl->request_with_http_request($req :HTTP::Request) >>
-
-This is an easy-to-use alias to C<request()> with an instance of
-C<HTTP::Request>.
-
 
 =head1 FAQ
 
@@ -985,7 +974,7 @@ You can use multipart/form-data with L<HTTP::Request::Common>.
         born   => '1978',
         init   => ["$ENV{HOME}/.profile"],
       ];
-    $furl->request_with_http_request($req);
+    $furl->request($req);
 
 Native multipart/form-data support for L<Furl> is available if you can send a patch for me.
 

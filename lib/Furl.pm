@@ -4,7 +4,7 @@ use warnings;
 use utf8;
 use Furl::HTTP;
 use Furl::Response;
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 use 5.008001;
 
@@ -15,12 +15,36 @@ sub new {
 
 {
     no strict 'refs';
-    for my $meth (qw/request get head post delete put request_with_http_request/) {
+    for my $meth (qw/get head post delete put/) {
         *{__PACKAGE__ . '::' . $meth} = sub {
             my $self = shift;
             Furl::Response->new(${$self}->$meth(@_));
         }
     }
+}
+
+sub request {
+    my $self = shift;
+
+    my %args;
+    if (@_ % 2 == 0) {
+        %args = @_;
+    } else {
+        my $req = shift;
+        %args = @_;
+        my $headers = +[
+            map {
+                my $k = $_;
+                map { ( $k => $_ ) } $req->headers->header($_);
+            } $req->headers->header_field_names
+        ];
+
+        $args{url}     = $req->uri;
+        $args{method}  = $req->method;
+        $args{content} = $req->content;
+        $args{headers} = $headers;
+    }
+    Furl::Response->new(${$self}->request(%args));
 }
 
 1;
@@ -93,7 +117,7 @@ I<%args> might be:
 
 =head2 Instance Methods
 
-=head3 C<< $furl->request(%args) :Furl::Response >>
+=head3 C<< $furl->request([$request,] %args) :Furl::Response >>
 
 Sends an HTTP request to a specified URL and returns a instance of L<Furl::Response>.
 
@@ -136,6 +160,32 @@ Content to request.
 
 =back
 
+If the number of arguments is an odd number, this method assumes that the
+first argument is an instance of C<HTTP::Request>. Remaining arguments
+can be any of the previously describe values (but currently there's no
+way to really utilize them, so don't use it)
+
+    my $req = HTTP::Request->new(...);
+    my $res = $furl->request($req);
+
+You can also specify an object other than HTTP::Request, but the object
+must implement the following methods: 
+
+=over 4
+
+=item uri
+
+=item method
+
+=item content
+
+=item headers
+
+=back
+
+These must return the same type of values as their counterparts in
+C<HTTP::Request>.
+
 You must encode all the queries or this method will die, saying
 C<Wide character in ...>.
 
@@ -158,11 +208,6 @@ This is an easy-to-use alias to C<request()>, sending the C<PUT> method.
 =head3 C<< $furl->delete($url :Str, $headers :ArrayRef[Str] ) >>
 
 This is an easy-to-use alias to C<request()>, sending the C<DELETE> method.
-
-=head3 C<< $furl->request_with_http_request($req :HTTP::Request) >>
-
-This is an easy-to-use alias to C<request()> with an instance of
-C<HTTP::Request>.
 
 =head3 C<< $furl->env_proxy() >>
 
@@ -264,6 +309,7 @@ lestrrat
 
 walf443
 
+lestrrat
 
 =head1 SEE ALSO
 

@@ -19,7 +19,7 @@ inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 inc/Pod/Markdown.pm
 lib/Furl.pm
-lib/Furl/ConnPool.pm
+lib/Furl/ConnectionCache.pm
 lib/Furl/Headers.pm
 lib/Furl/HTTP.pm
 lib/Furl/Response.pm
@@ -58,7 +58,6 @@ t/300_high/04_http_request.t
 t/400_components/01_headers.t
 t/400_components/02_response.t
 t/HTTPServer.pm
-t/SilentStarman.pm
 t/Slowloris.pm
 t/Util.pm
 TODO
