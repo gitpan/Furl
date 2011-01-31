@@ -4,7 +4,7 @@ use warnings;
 use utf8;
 use Furl::HTTP;
 use Furl::Response;
-our $VERSION = '0.22';
+our $VERSION = '0.23';
 
 use 5.008001;
 
@@ -21,6 +21,11 @@ sub new {
             Furl::Response->new(${$self}->$meth(@_));
         }
     }
+}
+
+sub env_proxy {
+    my $self = shift;
+    $$self->env_proxy;
 }
 
 sub request {
