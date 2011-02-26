@@ -4,7 +4,8 @@ use warnings;
 use utf8;
 use Furl::HTTP;
 use Furl::Response;
-our $VERSION = '0.30';
+use Carp ();
+our $VERSION = '0.31';
 
 use 5.008001;
 
@@ -18,6 +19,7 @@ sub new {
     for my $meth (qw/get head post delete put/) {
         *{__PACKAGE__ . '::' . $meth} = sub {
             my $self = shift;
+            local $Carp::CarpLevel = $Carp::CarpLevel + 1;
             Furl::Response->new(${$self}->$meth(@_));
         }
     }
@@ -49,6 +51,7 @@ sub request {
         $args{content} = $req->content;
         $args{headers} = $headers;
     }
+    local $Carp::CarpLevel = $Carp::CarpLevel + 1;
     Furl::Response->new(${$self}->request(%args));
 }
 
