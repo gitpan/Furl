@@ -217,7 +217,8 @@ sub request {
         $path_query = '/';
     }
 
-    if ($host =~ /[^A-Za-z0-9.-]/) {
+    # Note. '_' is a invalid character for uri, but some servers using fucking underscore for domain name. Then, I accept the '_' character for domain name.
+    if ($host =~ /[^A-Za-z0-9._-]/) {
         _requires('Net/IDN/Encode.pm',
             'Internationalized Domain Name (IDN)');
         $host = Net::IDN::Encode::domain_to_ascii($host);
