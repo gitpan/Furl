@@ -5,7 +5,7 @@ use utf8;
 use Furl::HTTP;
 use Furl::Response;
 use Carp ();
-our $VERSION = '0.37';
+our $VERSION = '0.38';
 
 use 5.008001;
 
@@ -23,6 +23,10 @@ sub new {
             Furl::Response->new(${$self}->$meth(@_));
         }
     }
+}
+
+sub agent {
+    @_ == 2 ? $$_[0]->agent($_[1]) : $$_[0]->agent;
 }
 
 sub env_proxy {
