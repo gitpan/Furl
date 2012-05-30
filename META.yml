@@ -3,7 +3,7 @@ abstract: 'Lightning-fast URL fetcher'
 author:
   - 'Tokuhiro Matsuno <tokuhirom AAJKLFJEF GMAIL COM>'
 build_requires:
-  ExtUtils::MakeMaker: 6.42
+  ExtUtils::MakeMaker: 6.59
   HTTP::Proxy: 0
   IO::Callback: 0
   IO::Socket::SSL: 0
@@ -19,9 +19,10 @@ build_requires:
   Test::Requires: 0
   Test::TCP: 1.06
 configure_requires:
-  ExtUtils::MakeMaker: 6.42
+  ExtUtils::MakeMaker: 6.59
 distribution_type: module
-generated_by: 'Module::Install version 1.01'
+dynamic_config: 1
+generated_by: 'Module::Install version 1.06'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -44,4 +45,4 @@ resources:
   bugtracker: http://github.com/tokuhirom/p5-Furl/issues
   license: http://dev.perl.org/licenses/
   repository: http://github.com/tokuhirom/p5-Furl/
-version: 0.38
+version: 0.39
