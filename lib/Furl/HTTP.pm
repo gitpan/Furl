@@ -4,7 +4,7 @@ use warnings;
 use base qw/Exporter/;
 use 5.008001;
 
-our $VERSION = '1.00';
+our $VERSION = '1.01';
 
 use Carp ();
 use Furl::ConnectionCache;
@@ -67,6 +67,7 @@ sub new {
         header_format => HEADERS_AS_ARRAYREF,
         stop_if       => sub {},
         inet_aton      => sub { Socket::inet_aton($_[0]) },
+        ssl_opts      => {},
         %args
     }, $class;
 }
@@ -578,6 +579,7 @@ sub connect_ssl {
         PeerHost => $host,
         PeerPort => $port,
         Timeout  => $timeout,
+        %{ $self->{ssl_opts} },
     ) or return (undef, "Cannot create SSL connection: $!");
     _set_sockopts($sock);
     $sock;
@@ -964,19 +966,35 @@ B<HEADERS_AS_ARRAYREF> is a default value. This makes B<$headers> as ArrayRef.
 
 B<HEADERS_NONE> makes B<$headers> as undef. Furl does not return parsing result of headers. You should take needed headers from B<special_headers>.
 
-=item connection_pool
+=item connection_pool :Object
 
 This is the connection pool object for keep-alive requests. By default, it is a instance of L<Furl::ConnectionCache>.
 
 You may not customize this variable otherwise to use L<Coro>. This attribute requires a duck type object. It has two methods, C<< $obj->steal($host, $port >> and C<< $obj->push($host, $port, $sock) >>.
 
-=item stop_if
+=item stop_if :CodeRef
 
 A callback function that is called by Furl after when a blocking function call returns EINTR. Furl will abort the HTTP request and return immediately if the callback returns true. Otherwise the operation is continued (the default behaviour).
 
-=item inet_aton
+=item inet_aton :CodeRef
 
 A callback function to customize name resolution. Takes two arguments: ($hostname, $timeout_in_seconds). If omitted, Furl calls L<Socket::inet_aton>.
+
+=item ssl_opts :HashRef
+
+SSL configuration used on https requests, passed directly to C<< IO::Socket::SSL->new() >>,
+
+for example:
+
+    use IO::Socket::SSL;
+
+    my $ua = Furl::HTTP->new(
+        ssl_opts => {
+            SSL_verify_mode => SSL_VERIFY_PEER(),
+        },
+    });
+
+See L<IO::Socket::SSL> for details.
 
 =back
 
@@ -1163,6 +1181,26 @@ Although Furl itself supports timeout, some underlying modules / functions do no
     my $furl = Furl->new(
         timeout   => $my_timeout_in_seconds,
         inet_aton => sub { Net::DNS::Lite::inet_aton(@_) },
+    );
+
+=item How can I replace Host header instead of hostname?
+
+Furl::HTTP does not support to replace Host header for performance reason.
+
+But you can replace DNS resolver routine. It works fine.
+
+    my $furl = Furl::HTTP->new(
+        inet_aton => sub {
+            my ($hostname, $timeout) = @_;
+            $hostname = +{
+                'the-host' => 'yahoo.com'
+            }->{$hostname} || $hostname;
+            Socket::inet_aton($hostname);
+        },
+    );
+    my ($minor_version, $code, $msg, $headers, $body) = $furl->request(
+        url => 'http://the-host/',
+        method => 'GET'
     );
 
 =back
