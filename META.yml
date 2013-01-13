@@ -46,4 +46,4 @@ resources:
   bugtracker: http://github.com/tokuhirom/Furl/issues
   license: http://dev.perl.org/licenses/
   repository: http://github.com/tokuhirom/Furl/
-version: 1.02
+version: 1.03
