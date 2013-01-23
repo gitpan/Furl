@@ -4,7 +4,7 @@ use warnings;
 use base qw/Exporter/;
 use 5.008001;
 
-our $VERSION = '2.00';
+our $VERSION = '2.01';
 
 use Carp ();
 use Furl::ConnectionCache;
@@ -568,10 +568,12 @@ sub connect :method {
 sub _ssl_opts {
     my $self = shift;
     my $ssl_opts = $self->{ssl_opts};
-    unless (exists $ssl_opts->{SSL_verify_mode} && exists $ssl_opts->{SSL_verifycn_scheme}) {
+    unless (exists $ssl_opts->{SSL_verify_mode}) {
         # set SSL_VERIFY_PEER as default.
         $ssl_opts->{SSL_verify_mode}     = IO::Socket::SSL::SSL_VERIFY_PEER();
-        $ssl_opts->{SSL_verifycn_scheme} = 'www'
+        unless (exists $ssl_opts->{SSL_verifycn_scheme}) {
+            $ssl_opts->{SSL_verifycn_scheme} = 'www'
+        }
     }
     if ($ssl_opts->{SSL_verify_mode}) {
         unless (exists $ssl_opts->{SSL_ca_file} || exists $ssl_opts->{SSL_ca_path}) {
@@ -630,6 +632,9 @@ sub connect_ssl_over_proxy {
         if $timeout_at <= 0;
 
     my $ssl_opts = $self->_ssl_opts;
+    unless (exists $ssl_opts->{SSL_verifycn_name}) {
+        $ssl_opts->{SSL_verifycn_name} = $host;
+    }
     IO::Socket::SSL->start_SSL( $sock, Timeout => $timeout, %$ssl_opts )
       or return (
           undef, "Cannot start SSL connection: " . _strerror_or_timeout());
