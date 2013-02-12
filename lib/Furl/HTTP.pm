@@ -4,7 +4,7 @@ use warnings;
 use base qw/Exporter/;
 use 5.008001;
 
-our $VERSION = '2.04';
+our $VERSION = '2.05';
 
 use Carp ();
 use Furl::ConnectionCache;
@@ -858,7 +858,7 @@ sub _r500 {
     return(0, 500, "Internal Response: $message",
         [
             'Content-Length' => length($message),
-            'Client-Warning' => 'Internal Response',
+            'X-Internal-Response' => 1,
             # XXX ^^ EXPERIMENTAL header. Do not depend to this.
         ], $message
     );
