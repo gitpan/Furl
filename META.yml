@@ -19,10 +19,10 @@ build_requires:
   Test::Requires: 0
   Test::TCP: 1.06
 configure_requires:
+  CPAN::Meta: 0
   ExtUtils::MakeMaker: 6.59
-distribution_type: module
-dynamic_config: 1
-generated_by: 'Module::Install version 1.06'
+dynamic_config: 0
+generated_by: 'Module::Install version 1.06, CPAN::Meta::Converter version 2.120921'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -43,9 +43,9 @@ requires:
   HTTP::Parser::XS: 0.11
   MIME::Base64: 0
   Mozilla::CA: 0
-  perl: 5.8.1
+  perl: v5.8.1
 resources:
   bugtracker: http://github.com/tokuhirom/Furl/issues
   license: http://dev.perl.org/licenses/
   repository: http://github.com/tokuhirom/Furl/
-version: 2.08
+version: 2.09
