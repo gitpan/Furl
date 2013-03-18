@@ -1,28 +1,21 @@
 ---
 abstract: 'Lightning-fast URL fetcher'
 author:
-  - 'Tokuhiro Matsuno <tokuhirom AAJKLFJEF GMAIL COM>'
+  - unknown
 build_requires:
-  ExtUtils::MakeMaker: 6.59
-  HTTP::Proxy: 0
-  IO::Callback: 0
-  IO::Socket::SSL: 0
-  Net::DNS::Lite: 0
-  Net::IDN::Encode: 0
-  Plack: 0
-  Plack::Middleware::Deflater: 0
-  Starlet: 0
-  Test::LeakTrace: 0
+  Module::Build::Pluggable::CPANfile: 0.02
+  Module::Build::Pluggable::GithubMeta: 0
   Test::More: 0.96
-  Test::Perl::Critic: 0
-  Test::Pod: 0
   Test::Requires: 0
   Test::TCP: 1.06
 configure_requires:
-  CPAN::Meta: 0
-  ExtUtils::MakeMaker: 6.59
+  Module::Build: 0.4
+  Module::Build::Pluggable: 0
+  Module::Build::Pluggable::CPANfile: 0.02
+  Module::Build::Pluggable::GithubMeta: 0
+  Module::Build::Pluggable::ReadmeMarkdownFromPod: 0
 dynamic_config: 0
-generated_by: 'Module::Install version 1.06, CPAN::Meta::Converter version 2.120921'
+generated_by: 'Module::Build version 0.4003, CPAN::Meta::Converter version 2.120921'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -30,22 +23,37 @@ meta-spec:
 name: Furl
 no_index:
   directory:
-    - example
     - inc
-    - t
-    - xt
-recommends:
-  Compress::Raw::Zlib: 0
-  IO::Socket::SSL: 0
-  Net::IDN::Encode: 0
+provides:
+  Furl:
+    file: lib/Furl.pm
+    version: 2.10
+  Furl::ConnectionCache:
+    file: lib/Furl/ConnectionCache.pm
+    version: 0
+  Furl::HTTP:
+    file: lib/Furl/HTTP.pm
+    version: 2.10
+  Furl::Headers:
+    file: lib/Furl/Headers.pm
+    version: 0
+  Furl::Request:
+    file: lib/Furl/Request.pm
+    version: 0
+  Furl::Response:
+    file: lib/Furl/Response.pm
+    version: 0
+  Furl::ZlibStream:
+    file: lib/Furl/ZlibStream.pm
+    version: 0
 requires:
   Class::Accessor::Lite: 0
   HTTP::Parser::XS: 0.11
   MIME::Base64: 0
   Mozilla::CA: 0
-  perl: v5.8.1
+  perl: 5.008005
 resources:
-  bugtracker: http://github.com/tokuhirom/Furl/issues
+  homepage: https://github.com/tokuhirom/Furl/tree
   license: http://dev.perl.org/licenses/
-  repository: http://github.com/tokuhirom/Furl/
-version: 2.09
+  repository: git://github.com/tokuhirom/Furl.git
+version: 2.10
