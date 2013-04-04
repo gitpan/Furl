@@ -1,6 +1,8 @@
-package Slowloris;
+package t::Slowloris;
 use strict;
 use warnings;
+
+package Slowloris;
 use Test::SharedFork;
 
 our $WriteBytes   = 1;

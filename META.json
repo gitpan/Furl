@@ -1,13 +1,11 @@
 {
    "abstract" : "Lightning-fast URL fetcher",
    "author" : [
-      "unknown"
+      "Tokuhiro Matsuno <tokuhirom @gmail COM>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Module::Build version 0.4003, CPAN::Meta::Converter version 2.120921",
-   "license" : [
-      "perl_5"
-   ],
+   "generated_by" : "Minilla/v0.0.49",
+   "license" : "perl_5",
    "meta-spec" : {
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
       "version" : "2"
@@ -15,77 +13,139 @@
    "name" : "Furl",
    "no_index" : {
       "directory" : [
-         "inc"
+         "t",
+         "xt",
+         "inc",
+         "share",
+         "eg",
+         "examples"
       ]
    },
    "prereqs" : {
-      "build" : {
-         "requires" : {
-            "Module::Build::Pluggable::CPANfile" : "0.02",
-            "Module::Build::Pluggable::GithubMeta" : "0",
-            "Test::More" : "0.96",
-            "Test::Requires" : "0",
-            "Test::TCP" : "1.06"
-         }
-      },
       "configure" : {
          "requires" : {
-            "Module::Build" : "0.4",
-            "Module::Build::Pluggable" : "0",
-            "Module::Build::Pluggable::CPANfile" : "0.02",
-            "Module::Build::Pluggable::GithubMeta" : "0",
-            "Module::Build::Pluggable::ReadmeMarkdownFromPod" : "0"
+            "CPAN::Meta" : "0",
+            "CPAN::Meta::Prereqs" : "0",
+            "Module::Build" : "0.38"
+         }
+      },
+      "develop" : {
+         "requires" : {
+            "Child" : "0",
+            "Getopt::Long" : "0",
+            "HTTP::Lite" : "0",
+            "LWP::UserAgent" : "0",
+            "Plack::Loader" : "0",
+            "Pod::Wordlist::hanekomu" : "0",
+            "Starman" : "0",
+            "Test::CPAN::Meta" : "0",
+            "Test::MinimumVersion" : "0.10108",
+            "Test::More" : "0",
+            "Test::Pod" : "1.41",
+            "Test::Requires" : "0",
+            "Test::Spelling" : "0",
+            "Test::TCP" : "0",
+            "URI" : "0",
+            "WWW::Curl::Easy" : "4.14",
+            "autodie" : "0",
+            "parent" : "0"
          }
       },
       "runtime" : {
+         "recommends" : {
+            "Compress::Raw::Zlib" : "0",
+            "HTTP::Headers" : "0",
+            "HTTP::Request" : "0",
+            "HTTP::Response" : "0",
+            "IO::Socket::SSL" : "0",
+            "Net::IDN::Encode" : "0"
+         },
          "requires" : {
             "Class::Accessor::Lite" : "0",
+            "Encode" : "0",
             "HTTP::Parser::XS" : "0.11",
             "MIME::Base64" : "0",
             "Mozilla::CA" : "0",
-            "perl" : "5.008005"
+            "Scalar::Util" : "0",
+            "Socket" : "0",
+            "Time::HiRes" : "0",
+            "perl" : "5.008001"
+         }
+      },
+      "test" : {
+         "recommends" : {
+            "File::Temp" : "0",
+            "HTTP::Proxy" : "0",
+            "HTTP::Server::PSGI" : "0",
+            "Plack" : "0",
+            "Plack::Loader" : "0",
+            "Plack::Request" : "0",
+            "Starlet::Server" : "0",
+            "Test::SharedFork" : "0",
+            "Test::Valgrind" : "0",
+            "URI" : "0",
+            "parent" : "0"
+         },
+         "requires" : {
+            "Test::Fake::HTTPD" : "0",
+            "Test::More" : "0.96",
+            "Test::Requires" : "0",
+            "Test::TCP" : "1.06"
          }
       }
    },
    "provides" : {
       "Furl" : {
          "file" : "lib/Furl.pm",
-         "version" : "2.10"
+         "version" : "2.11"
       },
       "Furl::ConnectionCache" : {
-         "file" : "lib/Furl/ConnectionCache.pm",
-         "version" : 0
+         "file" : "lib/Furl/ConnectionCache.pm"
       },
       "Furl::HTTP" : {
          "file" : "lib/Furl/HTTP.pm",
-         "version" : "2.10"
+         "version" : "2.11"
       },
       "Furl::Headers" : {
-         "file" : "lib/Furl/Headers.pm",
-         "version" : 0
+         "file" : "lib/Furl/Headers.pm"
       },
       "Furl::Request" : {
-         "file" : "lib/Furl/Request.pm",
-         "version" : 0
+         "file" : "lib/Furl/Request.pm"
       },
       "Furl::Response" : {
-         "file" : "lib/Furl/Response.pm",
-         "version" : 0
+         "file" : "lib/Furl/Response.pm"
       },
       "Furl::ZlibStream" : {
-         "file" : "lib/Furl/ZlibStream.pm",
-         "version" : 0
+         "file" : "lib/Furl/ZlibStream.pm"
       }
    },
    "release_status" : "stable",
    "resources" : {
-      "homepage" : "https://github.com/tokuhirom/Furl/tree",
-      "license" : [
-         "http://dev.perl.org/licenses/"
-      ],
+      "bugtracker" : {
+         "web" : "https://github.com/tokuhirom/Furl/issues"
+      },
+      "homepage" : "https://github.com/tokuhirom/Furl",
       "repository" : {
-         "url" : "git://github.com/tokuhirom/Furl.git"
+         "url" : "git://github.com/tokuhirom/Furl.git",
+         "web" : "https://github.com/tokuhirom/Furl"
       }
    },
-   "version" : "2.10"
+   "version" : "2.11",
+   "x_contributors" : [
+      "Keiji, Yoshimi <walf443@gmail.com>",
+      "Fuji, Goro <gfuji@cpan.org>",
+      "lestrrat <lestrrat+github@gmail.com>",
+      "Audrey Tang <audreyt@audreyt.org>",
+      "mattn <mattn.jp@gmail.com>",
+      "Fuji Goro <fuji.goro@dena.jp>",
+      "bayashi <bayashi@cpan.org>",
+      "Syohei YOSHIDA <syohex@gmail.com>",
+      "Kazuho Oku <kazuhooku@gmail.com>",
+      "Fuji, Goro <g.psy.va@gmail.com>",
+      "s-aska <s.aska.org@gmail.com>",
+      "Masahiro Nagano <kazeburo@gmail.com>",
+      "ikasam_a <masaki.nakagawa@gmail.com>",
+      "xaicron <xaicron@gmail.com>",
+      "tokuhirom <tokuhirom@gmail.com>"
+   ]
 }
