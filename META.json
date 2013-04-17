@@ -36,7 +36,7 @@
             "Test::CPAN::Meta" : "0",
             "Test::MinimumVersion" : "0.10108",
             "Test::Pod" : "1.41",
-            "Test::Spelling" : "0"
+            "Test::Spellunker" : "v0.0.3"
          },
          "suggests" : {
             "Child" : "0",
@@ -102,14 +102,14 @@
    "provides" : {
       "Furl" : {
          "file" : "lib/Furl.pm",
-         "version" : "2.12"
+         "version" : "2.13"
       },
       "Furl::ConnectionCache" : {
          "file" : "lib/Furl/ConnectionCache.pm"
       },
       "Furl::HTTP" : {
          "file" : "lib/Furl/HTTP.pm",
-         "version" : "2.12"
+         "version" : "2.13"
       },
       "Furl::Headers" : {
          "file" : "lib/Furl/Headers.pm"
@@ -135,7 +135,7 @@
          "web" : "https://github.com/tokuhirom/Furl"
       }
    },
-   "version" : "2.12",
+   "version" : "2.13",
    "x_contributors" : [
       "Keiji, Yoshimi <walf443@gmail.com>",
       "Fuji, Goro <gfuji@cpan.org>",
