@@ -1,7 +1,7 @@
 ---
 abstract: 'Lightning-fast URL fetcher'
 author:
-  - 'Tokuhiro Matsuno <tokuhirom @gmail COM>'
+  - 'Tokuhiro Matsuno <tokuhirom@gmail.com>'
 build_requires:
   Test::More: 0.96
   Test::Requires: 0
@@ -29,12 +29,12 @@ no_index:
 provides:
   Furl:
     file: lib/Furl.pm
-    version: 2.13
+    version: 2.14
   Furl::ConnectionCache:
     file: lib/Furl/ConnectionCache.pm
   Furl::HTTP:
     file: lib/Furl/HTTP.pm
-    version: 2.13
+    version: 2.14
   Furl::Headers:
     file: lib/Furl/Headers.pm
   Furl::Request:
@@ -61,7 +61,7 @@ resources:
   bugtracker: https://github.com/tokuhirom/Furl/issues
   homepage: https://github.com/tokuhirom/Furl
   repository: git://github.com/tokuhirom/Furl.git
-version: 2.13
+version: 2.14
 x_contributors:
   - 'Keiji, Yoshimi <walf443@gmail.com>'
   - 'Fuji, Goro <gfuji@cpan.org>'
@@ -77,4 +77,3 @@ x_contributors:
   - 'Masahiro Nagano <kazeburo@gmail.com>'
   - 'ikasam_a <masaki.nakagawa@gmail.com>'
   - 'xaicron <xaicron@gmail.com>'
-  - 'tokuhirom <tokuhirom@gmail.com>'
