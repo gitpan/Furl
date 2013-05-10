@@ -4,7 +4,7 @@
       "Tokuhiro Matsuno <tokuhirom@gmail.com>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Minilla/v0.0.53",
+   "generated_by" : "Minilla/v0.4.2",
    "license" : "perl_5",
    "meta-spec" : {
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
@@ -32,11 +32,10 @@
       },
       "develop" : {
          "requires" : {
-            "Pod::Wordlist::hanekomu" : "0",
             "Test::CPAN::Meta" : "0",
             "Test::MinimumVersion" : "0.10108",
             "Test::Pod" : "1.41",
-            "Test::Spellunker" : "v0.0.3"
+            "Test::Spellunker" : "v0.2.2"
          },
          "suggests" : {
             "Child" : "0",
@@ -102,14 +101,14 @@
    "provides" : {
       "Furl" : {
          "file" : "lib/Furl.pm",
-         "version" : "2.14"
+         "version" : "2.15"
       },
       "Furl::ConnectionCache" : {
          "file" : "lib/Furl/ConnectionCache.pm"
       },
       "Furl::HTTP" : {
          "file" : "lib/Furl/HTTP.pm",
-         "version" : "2.14"
+         "version" : "2.15"
       },
       "Furl::Headers" : {
          "file" : "lib/Furl/Headers.pm"
@@ -135,7 +134,7 @@
          "web" : "https://github.com/tokuhirom/Furl"
       }
    },
-   "version" : "2.14",
+   "version" : "2.15",
    "x_contributors" : [
       "Keiji, Yoshimi <walf443@gmail.com>",
       "Fuji, Goro <gfuji@cpan.org>",
