@@ -4,7 +4,7 @@
       "Tokuhiro Matsuno <tokuhirom@gmail.com>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Minilla/v0.4.2",
+   "generated_by" : "Minilla/v0.4.3",
    "license" : "perl_5",
    "meta-spec" : {
       "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
@@ -78,12 +78,12 @@
       },
       "test" : {
          "requires" : {
+            "File::Temp" : "0",
             "Test::More" : "0.96",
             "Test::Requires" : "0",
             "Test::TCP" : "1.06"
          },
          "suggests" : {
-            "File::Temp" : "0",
             "HTTP::Proxy" : "0",
             "HTTP::Server::PSGI" : "0",
             "Plack" : "0",
@@ -101,14 +101,14 @@
    "provides" : {
       "Furl" : {
          "file" : "lib/Furl.pm",
-         "version" : "2.15"
+         "version" : "2.16"
       },
       "Furl::ConnectionCache" : {
          "file" : "lib/Furl/ConnectionCache.pm"
       },
       "Furl::HTTP" : {
          "file" : "lib/Furl/HTTP.pm",
-         "version" : "2.15"
+         "version" : "2.16"
       },
       "Furl::Headers" : {
          "file" : "lib/Furl/Headers.pm"
@@ -134,7 +134,7 @@
          "web" : "https://github.com/tokuhirom/Furl"
       }
    },
-   "version" : "2.15",
+   "version" : "2.16",
    "x_contributors" : [
       "Keiji, Yoshimi <walf443@gmail.com>",
       "Fuji, Goro <gfuji@cpan.org>",
@@ -143,12 +143,12 @@
       "mattn <mattn.jp@gmail.com>",
       "Fuji Goro <fuji.goro@dena.jp>",
       "bayashi <bayashi@cpan.org>",
-      "Syohei YOSHIDA <syohex@gmail.com>",
       "Kazuho Oku <kazuhooku@gmail.com>",
       "Fuji, Goro <g.psy.va@gmail.com>",
       "s-aska <s.aska.org@gmail.com>",
       "Masahiro Nagano <kazeburo@gmail.com>",
       "ikasam_a <masaki.nakagawa@gmail.com>",
-      "xaicron <xaicron@gmail.com>"
+      "xaicron <xaicron@gmail.com>",
+      "Syohei YOSHIDA <syohex@gmail.com>"
    ]
 }
