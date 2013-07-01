@@ -66,6 +66,7 @@ t/400_components/001_response-coding/t-utf-8.html
 t/400_components/01_headers.t
 t/400_components/02_response.t
 t/400_components/03_request.t
+t/800_regression/01_capture_request.t
 t/999_intrenal/parse_url.t
 t/HTTPServer.pm
 t/Slowloris.pm
