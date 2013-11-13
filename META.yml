@@ -12,7 +12,7 @@ configure_requires:
   CPAN::Meta::Prereqs: 0
   Module::Build: 0.38
 dynamic_config: 0
-generated_by: 'Minilla/v0.6.3, CPAN::Meta::Converter version 2.131560'
+generated_by: 'Minilla/v0.4.2, CPAN::Meta::Converter version 2.120921'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -30,20 +30,25 @@ no_index:
 provides:
   Furl:
     file: lib/Furl.pm
-    version: 2.19
+    version: 3.00
   Furl::ConnectionCache:
     file: lib/Furl/ConnectionCache.pm
+    version: 0
   Furl::HTTP:
     file: lib/Furl/HTTP.pm
-    version: 2.19
+    version: 3.00
   Furl::Headers:
     file: lib/Furl/Headers.pm
+    version: 0
   Furl::Request:
     file: lib/Furl/Request.pm
+    version: 0
   Furl::Response:
     file: lib/Furl/Response.pm
+    version: 0
   Furl::ZlibStream:
     file: lib/Furl/ZlibStream.pm
+    version: 0
 recommends:
   Compress::Raw::Zlib: 0
   IO::Socket::SSL: 0
@@ -62,7 +67,7 @@ resources:
   bugtracker: https://github.com/tokuhirom/Furl/issues
   homepage: https://github.com/tokuhirom/Furl
   repository: git://github.com/tokuhirom/Furl.git
-version: 2.19
+version: 3.00
 x_contributors:
   - 'Keiji, Yoshimi <walf443@gmail.com>'
   - 'Fuji, Goro <gfuji@cpan.org>'
@@ -71,10 +76,11 @@ x_contributors:
   - 'mattn <mattn.jp@gmail.com>'
   - 'Fuji Goro <fuji.goro@dena.jp>'
   - 'bayashi <bayashi@cpan.org>'
-  - 'Kazuho Oku <kazuhooku@gmail.com>'
   - 'Fuji, Goro <g.psy.va@gmail.com>'
   - 's-aska <s.aska.org@gmail.com>'
   - 'ikasam_a <masaki.nakagawa@gmail.com>'
   - 'xaicron <xaicron@gmail.com>'
   - 'Syohei YOSHIDA <syohex@gmail.com>'
   - 'Masahiro Nagano <kazeburo@gmail.com>'
+  - 'Neil Bowers <neil@bowers.com>'
+  - 'Kazuho Oku <kazuhooku@gmail.com>'

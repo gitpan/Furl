@@ -4,7 +4,7 @@ use warnings;
 use base qw/Exporter/;
 use 5.008001;
 
-our $VERSION = '2.19';
+our $VERSION = '3.00';
 
 use Carp ();
 use Furl::ConnectionCache;
@@ -56,19 +56,20 @@ sub new {
         }
     }
     bless {
-        timeout           => 10,
-        max_redirects     => 7,
-        bufsize           => 10*1024, # no mmap
-        headers           => \@headers,
-        connection_header => $connection_header,
-        proxy             => '',
-        no_proxy          => '',
-        connection_pool   => Furl::ConnectionCache->new(),
-        header_format     => HEADERS_AS_ARRAYREF,
-        stop_if           => sub {},
-        inet_aton         => sub { Socket::inet_aton($_[0]) },
-        ssl_opts          => {},
-        capture_request   => $args{capture_request} || 0,
+        timeout            => 10,
+        max_redirects      => 7,
+        bufsize            => 10*1024, # no mmap
+        headers            => \@headers,
+        connection_header  => $connection_header,
+        proxy              => '',
+        no_proxy           => '',
+        connection_pool    => Furl::ConnectionCache->new(),
+        header_format      => HEADERS_AS_ARRAYREF,
+        stop_if            => sub {},
+        inet_aton          => sub { Socket::inet_aton($_[0]) },
+        ssl_opts           => {},
+        capture_request    => $args{capture_request} || 0,
+        inactivity_timeout => 600,
         %args
     }, $class;
 }
@@ -575,13 +576,12 @@ sub connect :method {
     my $timeout = $timeout_at - time;
     return (undef, "Failed to resolve host name: timeout")
         if $timeout <= 0;
-    my $iaddr = $self->{inet_aton}->($host, $timeout)
-        or return (undef, "Cannot resolve host name: $host, $!");
-
-    my $sock_addr = pack_sockaddr_in($port, $iaddr);
+    my ($sock_addr, $err_reason) = $self->_get_address($host, $port, $timeout);
+    return (undef, "Cannot resolve host name: $host (port: $port), " . ($err_reason || $!))
+        unless $sock_addr;
 
  RETRY:
-    socket($sock, PF_INET, SOCK_STREAM, 0)
+    socket($sock, Socket::sockaddr_family($sock_addr), SOCK_STREAM, 0)
         or Carp::croak("Cannot create socket: $!");
     _set_sockopts($sock);
     if (connect($sock, $sock_addr)) {
@@ -598,6 +598,17 @@ sub connect :method {
         return (undef, "Cannot connect to ${host}:${port}: $!");
     }
     $sock;
+}
+
+sub _get_address {
+    my ($self, $host, $port, $timeout) = @_;
+    if ($self->{get_address}) {
+        return $self->{get_address}->($host, $port, $timeout);
+    }
+    # default rule (TODO add support for IPv6)
+    my $iaddr = $self->{inet_aton}->($host, $timeout)
+        or return (undef, $!);
+    pack_sockaddr_in($port, $iaddr);
 }
 
 sub _ssl_opts {
@@ -626,12 +637,17 @@ sub connect_ssl {
     my ($self, $host, $port, $timeout_at) = @_;
     _requires('IO/Socket/SSL.pm', 'SSL');
 
+    my ($sock, $err_reason) = $self->connect($host, $port, $timeout_at);
+    return (undef, $err_reason)
+        unless $sock;
+
     my $timeout = $timeout_at - time;
     return (undef, "Cannot create SSL connection: timeout")
         if $timeout <= 0;
 
     my $ssl_opts = $self->_ssl_opts;
-    my $sock = IO::Socket::SSL->new(
+    IO::Socket::SSL->start_SSL(
+        $sock,
         PeerHost => $host,
         PeerPort => $port,
         Timeout  => $timeout,
@@ -786,9 +802,13 @@ sub _read_body_normal_to_string_buffer {
 # returns true if the socket is ready to read, false if timeout has occurred ($! will be cleared upon timeout)
 sub do_select {
     my($self, $is_write, $sock, $timeout_at) = @_;
+    my $now = time;
+    my $inactivity_timeout_at = $now + $self->{inactivity_timeout};
+    $timeout_at = $inactivity_timeout_at
+        if $timeout_at > $inactivity_timeout_at;
     # wait for data
     while (1) {
-        my $timeout = $timeout_at - time;
+        my $timeout = $timeout_at - $now;
         if ($timeout <= 0) {
             $! = 0;
             return 0;
@@ -804,6 +824,7 @@ sub do_select {
         my $nfound   = select($rfd, $wfd, $efd, $timeout);
         return 1 if $nfound > 0;
         return 0 if $nfound == -1 && $! == EINTR && $self->{stop_if}->();
+        $now = time;
     }
     die 'not reached';
 }
@@ -965,6 +986,8 @@ sub match_no_proxy {
 1;
 __END__
 
+=for stopwords sockaddr
+
 =encoding utf8
 
 =head1 NAME
@@ -1018,6 +1041,10 @@ I<%args> might be:
 
 Seconds until the call to $furl->request returns a timeout error (as an internally generated 500 error). The timeout might not be accurate since some underlying modules / built-ins function may block longer than the specified timeout. See the FAQ for how to support timeout during name resolution.
 
+=item inactivity_timeout :Int = 600
+
+An inactivity timer for TCP read/write (in seconds). $furl->request returns a timeout error if no additional data arrives (or is sent) within the specified threshold.
+
 =item max_redirects :Int = 7
 
 =item proxy :Str
@@ -1046,7 +1073,13 @@ You may not customize this variable otherwise to use L<Coro>. This attribute req
 
 A callback function that is called by Furl after when a blocking function call returns EINTR. Furl will abort the HTTP request and return immediately if the callback returns true. Otherwise the operation is continued (the default behaviour).
 
+=item get_address :CodeRef
+
+A callback function to override the default address resolution logic. Takes three arguments: ($hostname, $port, $timeout_in_seconds) and returns: ($sockaddr, $errReason).  If the returned $sockaddr is undef, then the resolution is considered as a failure and $errReason is propagated to the caller.
+
 =item inet_aton :CodeRef
+
+Deprecated.  New applications should use B<get_address> instead.
 
 A callback function to customize name resolution. Takes two arguments: ($hostname, $timeout_in_seconds). If omitted, Furl calls L<Socket::inet_aton>.
 
@@ -1255,21 +1288,21 @@ Although Furl itself supports timeout, some underlying modules / functions do no
 
 =item How can I replace Host header instead of hostname?
 
-Furl::HTTP does not support to replace Host header for performance reason.
+Furl::HTTP does not provide a way to replace the Host header because such a design leads to security issues.
 
-But you can replace DNS resolver routine. It works fine.
+If you want to send HTTP requests to a dedicated server (or a UNIX socket), you should use the B<get_address> callback to designate the peer to which L<Furl> should connect as B<sockaddr>.
 
-    my $furl = Furl::HTTP->new(
-        inet_aton => sub {
-            my ($hostname, $timeout) = @_;
-            $hostname = +{
-                'the-host' => 'yahoo.com'
-            }->{$hostname} || $hostname;
-            Socket::inet_aton($hostname);
+The example below sends all requests to 127.0.0.1:8080.
+
+    my $ua = Furl::HTTP->new(
+        get_address => sub {
+            my ($host, $port, $timeout) = @_;
+            sockaddr_in(8080, inet_aton("127.0.0.1"));
         },
     );
+
     my ($minor_version, $code, $msg, $headers, $body) = $furl->request(
-        url => 'http://the-host/',
+        url => 'http://example.com/foo',
         method => 'GET'
     );
 
