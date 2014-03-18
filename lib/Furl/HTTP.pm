@@ -4,7 +4,7 @@ use warnings;
 use base qw/Exporter/;
 use 5.008001;
 
-our $VERSION = '3.01';
+our $VERSION = '3.02';
 
 use Carp ();
 use Furl::ConnectionCache;
@@ -564,7 +564,7 @@ sub request {
 
     return (
         $res_minor_version, $res_status, $res_msg, $res_headers, $res_content,
-        $req_headers, $req_content,
+        $req_headers, $req_content, undef, undef, [$scheme, $username, $password, $host, $port, $path_query],
     );
 }
 
