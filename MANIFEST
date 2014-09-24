@@ -53,6 +53,7 @@ t/100_low/33_basic_auth.t
 t/100_low/34_keep_request.t
 t/100_low/35_get_address.t
 t/100_low/36_inactivity_timeout.t
+t/100_low/37_bad_content_length.t
 t/300_high/01_simple.t
 t/300_high/02_agent.t
 t/300_high/04_http_request.t
